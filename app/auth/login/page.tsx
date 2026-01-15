@@ -1,15 +1,18 @@
+'use client'
+
 import { useState } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/app/components/ui/button';
+import { Input } from '@/app/components/ui/input';
+import { Label } from '@/app/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Building2, Loader2, Mail, Lock } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/app/hooks/use-toast';
+import { useRouter } from 'next/navigation';
+import { loginUser } from '@/app/api/auth/login/route';
+import { useAuthStore } from '@/app/store/auth-store';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email'),
@@ -19,8 +22,8 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function Login() {
-  const { login, isAuthenticated, user } = useAuth();
-  const navigate = useNavigate();
+  const { login, user, isAuthenticated } = useAuthStore()
+  const router = useRouter();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -33,14 +36,23 @@ export default function Login() {
   });
 
   if (isAuthenticated && user) {
-    const redirectPath = user.role === 'admin' ? '/admin/dashboard' : '/dashboard';
-    return <Navigate to={redirectPath} replace />;
+    const redirectPath = user.role === 'admin' ? '/admin' : '/';
+    router.replace(redirectPath);
   }
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
-      await login({ email: data.email, password: data.password });
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: data.email, password: data.password }),
+      })
+
+    const { user } = await res.json();
+
+
+      login(user);
       toast({
         title: 'Welcome back!',
         description: 'You have successfully logged in.',
@@ -85,7 +97,7 @@ export default function Login() {
                     id="email"
                     type="email"
                     placeholder="you@example.com"
-                    className="pl-10"
+                    className="pl-10 outline-none"
                     {...register('email')}
                   />
                 </div>
@@ -101,8 +113,8 @@ export default function Login() {
                   <Input
                     id="password"
                     type="password"
-                    placeholder="••••••••"
-                    className="pl-10"
+                    placeholder="********"
+                    className="pl-10 focus:border-none focus:outline-none"
                     {...register('password')}
                   />
                 </div>

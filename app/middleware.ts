@@ -1,25 +1,34 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-export function middleware(request) {
-  if (request.nextUrl.pathname.startsWith('/dashboard') && !request.cookies.has('authToken')) {
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
+function getToken(req: NextRequest) {
+  return req.cookies.get('token')?.value;
 }
 
-// import { NextResponse } from 'next/server';
-// import { getToken } from 'next-auth/jwt';
+export async function middleware(req: NextRequest) {
+  const token = getToken(req);
+  const pathname = req.nextUrl.pathname;
+  const role = 'admin'; // Default role
 
-// export async function middleware(req) {
-//   const token = await getToken({ req });
-//   const { pathname } = req.nextUrl;
+  if (pathname.startsWith('/api/auth') || pathname === '/login' || pathname === '/signup') {
+    return NextResponse.next();
+  }
 
-//   if (pathname.startsWith('/admin') && token?.role !== 'admin') {
-//     return NextResponse.redirect(new URL('/dashboard', req.url)); // Or /unauthorized
-//   }
-//   if (pathname.startsWith('/dashboard') && !token) {
-//     return NextResponse.redirect(new URL('/login', req.url));
-//   }
-//   return NextResponse.next();
-// }
+  if (!token) {
+    return NextResponse.redirect(new URL('/auth/login', req.url));
+  }
 
-// export const config = { matcher: ['/admin/:path*', '/dashboard/:path*'] };
+  if (pathname.startsWith('/admin') && role !== 'admin') {
+      return NextResponse.redirect(new URL('/auth/login', req.url));
+  } else {
+    return NextResponse.redirect(new URL('/auth/login', req.url));
+  }
+  
+}
+
+export const config = {
+  matcher: [
+    '/:path*', 
+    '/admin/:path*',     
+    '/api/protected/:path*', 
+  ],
+};

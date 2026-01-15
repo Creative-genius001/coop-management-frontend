@@ -1,10 +1,10 @@
+'use client'
+
 import { Wallet, HandCoins, ArrowUpCircle, TrendingUp } from 'lucide-react';
 import { PageHeader } from '@/app/components/ui/page-header';
 import { StatCard } from '@/app/components/ui/stat-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { DataTable } from '@/app/components/ui/data-table';
-import { StatusBadge } from '@/app/components/ui/status-badge';
-import { useAuth } from '@/app/contexts/AuthContext';
 import { formatCurrency, formatDate, formatCompactNumber } from '@/app/lib/formatters';
 import { mockDashboardStats, mockLedgerEntries, mockContributionChartData } from '@/app/data/mockData';
 import {
@@ -18,7 +18,6 @@ import {
 } from 'recharts';
 
 export default function MemberDashboard() {
-  const { user } = useAuth();
   const stats = mockDashboardStats;
   const recentTransactions = mockLedgerEntries.slice(0, 5);
 
@@ -55,7 +54,8 @@ export default function MemberDashboard() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title={`Welcome back, ${user?.name.split(' ')[0]}!`}
+      //${user?.name.split(' ')[0]}!
+        title={`Welcome back, Ovies`}
         description="Here's an overview of your cooperative account"
       />
 

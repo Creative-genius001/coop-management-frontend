@@ -5,8 +5,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Skeleton } from '@/components/ui/skeleton';
+} from '@/app/components/ui/table';
+import { Skeleton } from '@/app/components/ui/skeleton';
 
 interface Column<T> {
   key: string;

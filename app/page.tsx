@@ -16,8 +16,12 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import { useAuthStore } from './store/auth-store';
 
 export default function MemberDashboard() {
+
+  const { user } = useAuthStore();
+
   const stats = mockDashboardStats;
   const recentTransactions = mockLedgerEntries.slice(0, 5);
 
@@ -55,7 +59,7 @@ export default function MemberDashboard() {
     <div className="space-y-8">
       <PageHeader
       //${user?.name.split(' ')[0]}!
-        title={`Welcome back, Ovies`}
+        title={`Welcome back, ${user?.firstname.split(' ')[0]}!`}
         description="Here's an overview of your cooperative account"
       />
 

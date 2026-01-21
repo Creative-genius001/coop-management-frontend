@@ -1,14 +1,51 @@
 export type UserRole = 'member' | 'admin';
 
 export interface User {
-  id: string;
-  memberId: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  phone?: string;
-  joinDate: string;
+  id: string,
+  memberId: string,
+  email: string,
+  firstname: string,
+  lastname: string,
+  role: UserRole,
+  account: {
+    id: string,
+    balance: number
+  }
 }
+
+export interface LoginResponse {
+    message: string,
+    data: {
+        id: string,
+        memberId: string,
+        email: string,
+        firstname: string,
+        lastname: string,
+        role: UserRole,
+        accessToken: string,
+        account: {
+            id: string,
+            balance: number
+        }
+    }
+}
+
+export interface SignupResponse {
+    message: string,
+    data: {
+        id: string,
+        memberId: string,
+        email: string,
+        firstname: string,
+        lastname: string,
+        role: UserRole,
+        accessToken: string,
+        account: {
+            id: string,
+            balance: number
+        }
+    }
+} 
 
 export interface AuthState {
   user: User | null;

@@ -2,14 +2,22 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect } from "react";
+import { useAuthStore } from './store/auth-store';
 
 const NotFound = () => {
   const router = useRouter();
+  const { user } = useAuthStore();
+
     useEffect(() => {
-        setTimeout(() => {
-          router.replace('/dashboard');
-        }, 3000);
-    }, [router]);
+        
+          if(user?.role === 'admin') {
+            router.replace('/admin');
+          }
+          else if (user?.role === 'member') {
+            router.replace('/');
+          }
+
+    }, [router, user]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted">

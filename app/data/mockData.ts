@@ -7,7 +7,7 @@ import {
   DashboardStats,
   AdminDashboardStats,
   Member,
-} from '@/types/financial';
+} from '@/app/types/financial';
 
 export const mockDashboardStats: DashboardStats = {
   totalSavings: 2450000,

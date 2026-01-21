@@ -11,7 +11,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app
 import { Building2, Loader2, Mail, Lock } from 'lucide-react';
 import { useToast } from '@/app/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { loginUser } from '@/app/api/auth/login/route';
 import { useAuthStore } from '@/app/store/auth-store';
 
 const loginSchema = z.object({
@@ -53,6 +52,7 @@ export default function Login() {
 
 
       login(user);
+      router.replace(user.role === 'admin' ? '/admin' : '/');
       toast({
         title: 'Welcome back!',
         description: 'You have successfully logged in.',

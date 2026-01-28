@@ -8,31 +8,48 @@ import { Card, CardContent } from '@/app/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { Search, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/app/lib/formatters';
-import { mockLedgerEntries } from '@/app/data/mockData';
 import { LedgerEntry } from '@/app/types/financial';
+import { useQueryClient } from '@tanstack/react-query';
+import { useLedgers } from '@/app/api/queries/useLedgers';
+import { useAuthStore } from '@/app/store/auth-store';
 
 export default function Ledger() {
+
+  const queryClient = useQueryClient()
+  const { user } = useAuthStore();
+  let categories: string[] = [];
+  let filteredLedger: LedgerEntry[] = [];
+
+  const { data, isPending, error, isError } = useLedgers(user?.memberId || '');
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   
-  const memberLedger = mockLedgerEntries.filter((e) => e.memberId === 'MEM001');
-  
-  const categories = [...new Set(memberLedger.map((e) => e.category))];
+  const memberLedger = data;
 
-  const filteredLedger = memberLedger.filter((entry) => {
+  if(memberLedger) {
+    queryClient.setQueryData(['ledgers'], memberLedger);
+
+    categories = [...new Set(memberLedger?.map((e) => e.category))];
+
+    filteredLedger = memberLedger?.filter((entry) => {
     const matchesSearch =
-      entry.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      entry.reference.toLowerCase().includes(searchQuery.toLowerCase());
+      entry.direction.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      entry.referenceId.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || entry.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
+
+  }
+  
+  
 
   const columns = [
     {
       key: 'date',
       header: 'Date',
       cell: (item: LedgerEntry) => (
-        <span className="text-sm">{formatDate(item.date)}</span>
+        <span className="text-sm">{formatDate(item.createdAt)}</span>
       ),
     },
     {
@@ -40,12 +57,12 @@ export default function Ledger() {
       header: 'Type',
       cell: (item: LedgerEntry) => (
         <div className="flex items-center gap-2">
-          {item.type === 'credit' ? (
+          {item.direction === 'CREDIT' ? (
             <ArrowDownLeft className="w-4 h-4 text-success" />
           ) : (
             <ArrowUpRight className="w-4 h-4 text-destructive" />
           )}
-          <span className="text-sm capitalize">{item.type}</span>
+          <span className="text-sm capitalize">{item.direction}</span>
         </div>
       ),
     },
@@ -56,38 +73,42 @@ export default function Ledger() {
         <span className="text-sm">{item.category}</span>
       ),
     },
-    {
-      key: 'description',
-      header: 'Description',
-      cell: (item: LedgerEntry) => (
-        <div>
-          <p className="text-sm">{item.description}</p>
-          <p className="text-xs text-muted-foreground font-mono">{item.reference}</p>
-        </div>
-      ),
-    },
+    // {
+    //   key: 'description',
+    //   header: 'Description',
+    //   cell: (item: LedgerEntry) => (
+    //     <div>
+    //       <p className="text-sm">{item.description}</p>
+    //       <p className="text-xs text-muted-foreground font-mono">{item.reference}</p>
+    //     </div>
+    //   ),
+    // },
     {
       key: 'amount',
       header: 'Amount',
       cell: (item: LedgerEntry) => (
-        <span className={item.type === 'credit' ? 'credit-text' : 'debit-text'}>
-          {item.type === 'credit' ? '+' : '-'}{formatCurrency(item.amount)}
+        <span className={item.direction === 'CREDIT' ? 'credit-text' : 'debit-text'}>
+          {item.direction === 'CREDIT' ? '+' : '-'}{formatCurrency(item.amount)}
         </span>
       ),
       className: 'text-right',
     },
-    {
-      key: 'balance',
-      header: 'Balance',
-      cell: (item: LedgerEntry) => (
-        <span className="font-semibold">{formatCurrency(item.balance)}</span>
-      ),
-      className: 'text-right',
-    },
+    // {
+    //   key: 'balance',
+    //   header: 'Balance',
+    //   cell: (item: LedgerEntry) => (
+    //     <span className="font-semibold">{formatCurrency(item.balance)}</span>
+    //   ),
+    //   className: 'text-right',
+    // },
   ];
 
   return (
-    <div className="space-y-6">
+
+    <>
+      { isPending && <div>Loading ledgers...</div> }
+      { isError && <div>Error: {error.message}</div> }
+      { data &&      <div className="space-y-6">
       <PageHeader
         title="Financial Ledger"
         description="Your complete transaction history"
@@ -129,6 +150,8 @@ export default function Ledger() {
         data={filteredLedger}
         emptyMessage="No ledger entries found"
       />
-    </div>
+    </div>}
+    </>
+
   );
 }

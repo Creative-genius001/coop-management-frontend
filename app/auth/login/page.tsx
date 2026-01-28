@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,9 +9,10 @@ import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Building2, Loader2, Mail, Lock } from 'lucide-react';
-import { useToast } from '@/app/hooks/use-toast';
+import { toast } from "sonner"
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/app/store/auth-store';
+import { User } from '@/app/types/auth';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email'),
@@ -23,7 +24,6 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function Login() {
   const { login, user, isAuthenticated } = useAuthStore()
   const router = useRouter();
-  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
   const {
@@ -34,10 +34,15 @@ export default function Login() {
     resolver: zodResolver(loginSchema),
   });
 
-  if (isAuthenticated && user) {
-    const redirectPath = user.role === 'admin' ? '/admin' : '/';
-    router.replace(redirectPath);
-  }
+
+  useEffect(() => {
+    toast('Login Component Mounted')
+    if (isAuthenticated && user) {
+      const redirectPath = user.role === 'admin' ? '/admin' : '/';
+      router.push(redirectPath);
+    }
+  }, [isAuthenticated, user, router]);
+
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
@@ -48,21 +53,28 @@ export default function Login() {
         body: JSON.stringify({ email: data.email, password: data.password }),
       })
 
-    const { user } = await res.json();
+      if(!res.ok) {       
+        const data = await res.json().catch(() => null);
+        toast.error(data?.message ||'Login failed. Please check your credentials and try again.');
+        throw new Error(data?.message || 'Login failed');
+      }
 
+      let loggedUserData;
 
-      login(user);
-      router.replace(user.role === 'admin' ? '/admin' : '/');
-      toast({
-        title: 'Welcome back!',
-        description: 'You have successfully logged in.',
-      });
+      try {
+        const userData = await res.json();
+        loggedUserData = userData.user as User;
+      } catch {
+        toast.error('Something went wrong. Please try again.');
+        throw new Error('Invalid server response');
+      }
+
+      login(loggedUserData);
+      toast.success('Logged in successfully');
+      router.replace(loggedUserData.role === 'admin' ? '/admin' : '/');
+     
     } catch (error) {
-      toast({
-        title: 'Login failed',
-        description: error instanceof Error ? error.message : 'An error occurred',
-        variant: 'destructive',
-      });
+      throw new Error(error instanceof Error ? error.message : 'Something went wrong');
     } finally {
       setIsLoading(false);
     }
@@ -134,19 +146,6 @@ export default function Login() {
                 )}
               </Button>
             </form>
-
-            {/* Demo credentials */}
-            <div className="mt-6 p-4 rounded-lg bg-muted/50 border border-border/50">
-              <p className="text-xs font-medium text-muted-foreground mb-2">Demo Credentials</p>
-              <div className="space-y-1 text-xs">
-                <p>
-                  <span className="font-medium">Member:</span> member@coop.com / password123
-                </p>
-                <p>
-                  <span className="font-medium">Admin:</span> admin@coop.com / admin123
-                </p>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>

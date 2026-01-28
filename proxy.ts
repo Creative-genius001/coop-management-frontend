@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { decodeJwt } from 'jose';
 
-function getToken(req: NextRequest) {
+export function getToken(req: NextRequest) {
   return req.cookies.get('token')?.value;
 }
 
@@ -17,7 +17,6 @@ export async function proxy(req: NextRequest) {
   
   const token = getToken(req);
   const { pathname } = req.nextUrl;
-  console.log('Middleware token:', token);
 
   if (isPublicRoute(pathname)) {
     return NextResponse.next()
@@ -30,7 +29,6 @@ export async function proxy(req: NextRequest) {
   
   try {
       const payload = decodeJwt(token); 
-      console.log(payload);
       
       const role = payload.role; 
       

@@ -1,26 +1,18 @@
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
-import axios from 'axios';
 import { LoginResponse } from '@/app/types/auth';
+import { api } from '../../https';
 
 export async function POST(req: Request) {
 
     try {
-        
-        
-        console.log('Logging in user...');
 
         const data = await req.json()
 
-        console.log('Login data received:', data);
-
-        const res = await axios.post('http://localhost:4000/auth/login', data, {}).catch((error) => {
+        const res = await api.post('/auth/login', data, {}).catch((error) => {
             if (error.response) {
-                console.error('Login failed with status:', error.response.status);
-                console.error('Login failed:', error.response.data);
-                throw new Error('Invalid credentials');
+                throw new Error(error.response.data.message || 'Login failed');
             } else {
-                console.error('Login error:', error.message);
                 throw new Error('Login failed');
             }
         })
@@ -37,6 +29,7 @@ export async function POST(req: Request) {
             value: accessToken,
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
+            maxAge: 900,
             sameSite: 'lax',
             path: '/',
         });
@@ -44,8 +37,8 @@ export async function POST(req: Request) {
         return NextResponse.json({user: userWithoutToken, message: 'Logged in successfully' });
 
     } catch (error) {
-        console.error('Login error:', error);
-        return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+        // console.error('Login error:', error instanceof Error ? error.message : error);
+        return NextResponse.json({ message: error instanceof Error ? error.message : 'Something went wrong' }, { status: 500 });
         
     }
 

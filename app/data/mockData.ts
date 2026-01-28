@@ -4,17 +4,11 @@ import {
   Withdrawal,
   LedgerEntry,
   Account,
-  DashboardStats,
   AdminDashboardStats,
   Member,
 } from '@/app/types/financial';
 
-export const mockDashboardStats: DashboardStats = {
-  totalSavings: 2450000,
-  activeLoans: 1,
-  pendingWithdrawals: 0,
-  monthlyContribution: 50000,
-};
+
 
 export const mockAdminDashboardStats: AdminDashboardStats = {
   totalCooperativeBalance: 125000000,
@@ -25,13 +19,6 @@ export const mockAdminDashboardStats: AdminDashboardStats = {
   monthlyOutflow: 3200000,
 };
 
-export const mockAccount: Account = {
-  savings: 1850000,
-  shareCapital: 500000,
-  loanLiability: 750000,
-  accruedInterest: 12500,
-  totalBalance: 2350000,
-};
 
 export const mockContributions: Contribution[] = [
   {

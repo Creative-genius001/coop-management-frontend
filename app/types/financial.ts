@@ -1,70 +1,65 @@
-export type LoanStatus = 'pending' | 'approved' | 'rejected' | 'active' | 'completed';
-export type WithdrawalStatus = 'pending' | 'approved' | 'rejected';
-export type TransactionType = 'credit' | 'debit';
-export type ContributionType = 'monthly' | 'special' | 'share_capital';
+export type LoanStatus = 'ACTIVE' | 'PAID' | 'PENDING' | 'REJECTED';
+export type WithdrawalStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type DirectionType = 'CREDIT' | 'DEBIT';
+export type ContributionType = 'CASH' | 'TRANSFER';
+export type CategoryType = 'CONTRIBUTION' | 'LOAN' | 'REPAYMENT' | 'WITHDRAWAL';
 
 export interface Contribution {
   id: string;
   memberId: string;
   amount: number;
   type: ContributionType;
-  reference: string;
-  date: string;
-  recordedBy?: string;
+  reference?: string;
+  createdAt: string;
 }
 
 export interface Loan {
   id: string;
   memberId: string;
-  memberName?: string;
+  accountId: string;
   amount: number;
-  interestRate: number;
-  term: number; // months
+  interestRate?: number;
+  loanDuration?: number; // months
   status: LoanStatus;
-  purpose: string;
-  appliedDate: string;
-  approvedDate?: string;
-  monthlyPayment?: number;
-  outstandingBalance?: number;
+  reason: string;
+  startDate?: string;
+  statusHistory: { status: LoanStatus; timestamp: string, changedBy: string }[];
 }
 
 export interface Withdrawal {
   id: string;
   memberId: string;
-  memberName?: string;
   amount: number;
-  reason: string;
+  reason?: string;
   status: WithdrawalStatus;
-  requestDate: string;
-  processedDate?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  createdAt: string;
 }
 
 export interface LedgerEntry {
   id: string;
+  referenceId: string;
   memberId: string;
-  memberName?: string;
-  type: TransactionType;
-  category: string;
+  category: CategoryType;
   amount: number;
-  balance: number;
-  description: string;
-  reference: string;
-  date: string;
+  direction: DirectionType;
+  createdAt: string;
 }
 
 export interface Account {
-  savings: number;
-  shareCapital: number;
+  memberId: string;
   loanLiability: number;
   accruedInterest: number;
   totalBalance: number;
 }
 
 export interface DashboardStats {
-  totalSavings: number;
+  totalContributions: number;
   activeLoans: number;
   pendingWithdrawals: number;
-  monthlyContribution: number;
+  contributionChartData: { month: string; amount: number }[];
+  recentLedger: LedgerEntry[];
 }
 
 export interface AdminDashboardStats {
@@ -79,12 +74,11 @@ export interface AdminDashboardStats {
 export interface Member {
   id: string;
   memberId: string;
-  name: string;
-  email: string;
+  firstname: string;
+  lastname: string;
+  email?: string;
   phone: string;
-  joinDate: string;
-  status: 'active' | 'inactive';
-  savings: number;
-  shareCapital: number;
-  loanBalance: number;
+  joinedAt: string;
+  status: 'active' | 'inactive' | 'suspended';
+  role : 'member' | 'admin'
 }

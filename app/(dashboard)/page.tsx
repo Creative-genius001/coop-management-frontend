@@ -4,9 +4,9 @@ import { Wallet, HandCoins, ArrowUpCircle, TrendingUp } from 'lucide-react';
 import { PageHeader } from '@/app/components/ui/page-header';
 import { StatCard } from '@/app/components/ui/stat-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Badge } from "@/app/components/ui/badge"
 import { DataTable } from '@/app/components/ui/data-table';
 import { formatCurrency, formatDate, formatCompactNumber } from '@/app/lib/formatters';
-import { mockDashboardStats, mockLedgerEntries, mockContributionChartData } from '@/app/data/mockData';
 import {
   AreaChart,
   Area,
@@ -16,83 +16,105 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { useAuthStore } from './store/auth-store';
+import { useAuthStore } from '../store/auth-store';
+import { useMemberDashboardStats } from '../api/queries/useMemberDashboardStats';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function MemberDashboard() {
 
   const { user } = useAuthStore();
+  const queryClient = useQueryClient()
 
-  const stats = mockDashboardStats;
-  const recentTransactions = mockLedgerEntries.slice(0, 5);
 
-  const transactionColumns = [
+  const { data, isPending, error, isError } = useMemberDashboardStats(user?.memberId || '');
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let transactionColumns: any = [];
+
+  if(data) {
+
+    queryClient.setQueryData(['dashboard-stats'], data);
+
+    transactionColumns = [
     {
       key: 'date',
       header: 'Date',
-      cell: (item: typeof recentTransactions[0]) => (
-        <span className="text-sm">{formatDate(item.date)}</span>
+      cell: (item: typeof data.recentLedger[0]) => (
+        <span className="text-sm font-medium">{formatDate(item.createdAt)}</span>
       ),
     },
     {
-      key: 'description',
-      header: 'Description',
-      cell: (item: typeof recentTransactions[0]) => (
+      key: 'category',
+      header: 'Category',
+      cell: (item: typeof data.recentLedger[0]) => (
         <div>
-          <p className="font-medium text-sm">{item.description}</p>
-          <p className="text-xs text-muted-foreground">{item.category}</p>
+          <p className="font-medium text-sm">{item.category}</p>
+          {/* <p className="text-xs text-muted-foreground">{item.category}</p> */}
+        </div>
+      ),
+    },
+    {
+      key: 'type',
+      header: 'Type',
+      cell: (item: typeof data.recentLedger[0]) => (
+        <div>
+            {item.direction === 'CREDIT' ? <Badge className="bg-green-100 text-green-800 dark:text-green-300 px-2 py-1 text-sm">CREDIT</Badge> : <Badge className="bg-red-50 text-red-700 dark:text-red-300 px-2 py-1 text-sm">DEBIT</Badge>}
+          {/* <p className="text-xs text-muted-foreground">{item.category}</p> */}
         </div>
       ),
     },
     {
       key: 'amount',
       header: 'Amount',
-      cell: (item: typeof recentTransactions[0]) => (
-        <span className={item.type === 'credit' ? 'credit-text' : 'debit-text'}>
-          {item.type === 'credit' ? '+' : '-'}{formatCurrency(item.amount)}
+      cell: (item: typeof data.recentLedger[0]) => (
+        <span className={item.direction === 'CREDIT' ? 'credit-text' : 'debit-text'}>
+          {item.direction === 'CREDIT' ? '+' : '-'}{formatCurrency(item.amount)}
         </span>
       ),
       className: 'text-right',
     },
   ];
 
+  }
+
+  
   return (
-    <div className="space-y-8">
+    <>
+      { isPending && <div>Loading dashboard...</div> }
+      { isError && <div>Error: {error.message}</div> }
+      { data &&  <div className="space-y-8">
       <PageHeader
-      //${user?.name.split(' ')[0]}!
         title={`Welcome back, ${user?.firstname.split(' ')[0]}!`}
         description="Here's an overview of your cooperative account"
       />
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
-          title="Total Savings"
-          value={formatCompactNumber(stats.totalSavings)}
+          title="Total Contributions"
+          value={formatCompactNumber(data.totalContributions)}
           icon={<Wallet className="w-5 h-5" />}
           trend={{ value: 12, isPositive: true }}
           variant="primary"
         />
         <StatCard
           title="Active Loans"
-          value={stats.activeLoans}
+          value={data.activeLoans}
           icon={<HandCoins className="w-5 h-5" />}
         />
         <StatCard
           title="Pending Withdrawals"
-          value={stats.pendingWithdrawals}
+          value={data.pendingWithdrawals}
           icon={<ArrowUpCircle className="w-5 h-5" />}
         />
-        <StatCard
+        {/* <StatCard
           title="Monthly Contribution"
-          value={formatCompactNumber(stats.monthlyContribution)}
+          value={formatCompactNumber(data.totalContribution)}
           icon={<TrendingUp className="w-5 h-5" />}
           variant="success"
-        />
+        /> */}
       </div>
 
-      {/* Charts & Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Contribution Chart */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Contribution Trend</CardTitle>
@@ -100,7 +122,7 @@ export default function MemberDashboard() {
           <CardContent>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={mockContributionChartData}>
+                <AreaChart data={data.contributionChartData}>
                   <defs>
                     <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
@@ -140,7 +162,6 @@ export default function MemberDashboard() {
           </CardContent>
         </Card>
 
-        {/* Recent Transactions */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Recent Transactions</CardTitle>
@@ -148,12 +169,14 @@ export default function MemberDashboard() {
           <CardContent>
             <DataTable
               columns={transactionColumns}
-              data={recentTransactions}
+              data={data.recentLedger}
               emptyMessage="No recent transactions"
             />
           </CardContent>
         </Card>
       </div>
-    </div>
+    </div>}
+    </>
+    
   );
 }

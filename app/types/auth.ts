@@ -7,6 +7,7 @@ export interface User {
   firstname: string,
   lastname: string,
   role: UserRole,
+  joinedAt: string,
   account: {
     id: string,
     balance: number

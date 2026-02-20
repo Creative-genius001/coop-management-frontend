@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { getLoans } from '../loan';
+import { getMemberLoans } from '../loan';
 
-export const useLoans = () =>
+export const useGetMemberLoans = (memberId: string) =>
   useQuery({
     queryKey: ['loans'],
-    queryFn: getLoans,
+    queryFn: () => getMemberLoans(memberId),
   });

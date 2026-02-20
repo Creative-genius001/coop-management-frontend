@@ -21,12 +21,20 @@ import { Plus, HandCoins, Clock, CheckCircle } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/app/lib/formatters';
 import { mockLoans } from '@/app/data/mockData';
 import { Loan } from '@/app/types/financial';
-import { useToast } from '@/app/hooks/use-toast';
+import { toast } from 'sonner'
+import { useAuthStore } from '@/app/store/auth-store';
+import { useQueryClient } from '@tanstack/react-query';
+import { useGetMemberLoans } from '@/app/api/queries/useLoans';
+
 
 export default function Loans() {
+
+  const queryClient = useQueryClient()
+  const { user } = useAuthStore();
+  
+  const { data, isPending, error, isError } = useGetMemberLoans(user?.memberId || '');
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { toast } = useToast();
-  const memberLoans = mockLoans.filter((l) => l.memberId === 'MEM001');
 
   const columns = [
     {
@@ -44,17 +52,17 @@ export default function Loans() {
       ),
     },
     {
-      key: 'purpose',
-      header: 'Purpose',
+      key: 'reason',
+      header: 'Reason',
       cell: (item: Loan) => (
-        <span className="text-sm">{item.purpose}</span>
+        <span className="text-sm">{item.reason}</span>
       ),
     },
     {
       key: 'term',
       header: 'Term',
       cell: (item: Loan) => (
-        <span className="text-sm">{item.term} months</span>
+        <span className="text-sm">{item.loanDuration} months</span>
       ),
     },
     {
@@ -76,18 +84,18 @@ export default function Loans() {
 
   const handleApplyLoan = (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: 'Loan application submitted',
-      description: 'Your loan application has been submitted for review.',
-    });
+    toast.success('Your loan application has been submitted for review.');
     setIsDialogOpen(false);
   };
 
-  const activeLoan = memberLoans.find((l) => l.status === 'active');
-  const pendingLoan = memberLoans.find((l) => l.status === 'pending');
+  const activeLoan = data?.find((l) => l.status === 'active');
+  const pendingLoan = data?.find((l) => l.status === 'pending');
 
   return (
-    <div className="space-y-6">
+    <>
+      { isPending && <div>Loading loans...</div> }
+      { isError && <div>Error: {error.message}</div> }
+      { data && <div className="space-y-6">
       <PageHeader
         title="Loans"
         description="Manage your loan applications and repayments"
@@ -160,7 +168,7 @@ export default function Loans() {
               <div>
                 <p className="text-sm text-muted-foreground">Total Borrowed</p>
                 <p className="text-2xl font-bold">
-                  {formatCurrency(memberLoans.reduce((sum, l) => sum + l.amount, 0))}
+                  {formatCurrency(data.reduce((sum, l) => sum + l.amount, 0))}
                 </p>
               </div>
             </div>
@@ -190,7 +198,7 @@ export default function Loans() {
               <div>
                 <p className="text-sm text-muted-foreground">Monthly Payment</p>
                 <p className="text-2xl font-bold">
-                  {formatCurrency(activeLoan?.monthlyPayment || 0)}
+                  {formatCurrency(activeLoan?.outstandingBalance || 0)}
                 </p>
               </div>
             </div>
@@ -201,9 +209,10 @@ export default function Loans() {
       {/* Table */}
       <DataTable
         columns={columns}
-        data={memberLoans}
+        data={data}
         emptyMessage="No loan records found"
       />
-    </div>
+    </div>}
+    </>
   );
 }

@@ -1,4 +1,5 @@
-export type LoanStatus = 'ACTIVE' | 'PAID' | 'PENDING' | 'REJECTED';
+// export type LoanStatus = 'ACTIVE' | 'PAID' | 'PENDING' | 'REJECTED';
+export type LoanStatus = 'pending' | 'approved' | 'rejected' | 'active' | 'completed' | 'inactive';
 export type WithdrawalStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 export type DirectionType = 'CREDIT' | 'DEBIT';
 export type ContributionType = 'CASH' | 'TRANSFER';
@@ -20,9 +21,10 @@ export interface Loan {
   amount: number;
   interestRate?: number;
   loanDuration?: number; // months
+  outstandingBalance: number;
   status: LoanStatus;
   reason: string;
-  startDate?: string;
+  appliedDate: string;
   statusHistory: { status: LoanStatus; timestamp: string, changedBy: string }[];
 }
 
@@ -69,6 +71,8 @@ export interface AdminDashboardStats {
   pendingApprovals: number;
   monthlyInflow: number;
   monthlyOutflow: number;
+  pendingLoanItems: Loan[];
+  pendingWithdrawalItems: Withdrawal[];
 }
 
 export interface Member {

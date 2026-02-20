@@ -1,16 +1,13 @@
+'use client'
+
 import { Users, Wallet, HandCoins, Clock, TrendingUp, TrendingDown } from 'lucide-react';
-import { PageHeader } from '@/components/ui/page-header';
-import { StatCard } from '@/components/ui/stat-card';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DataTable } from '@/components/ui/data-table';
-import { StatusBadge } from '@/components/ui/status-badge';
-import { formatCurrency, formatDate, formatCompactNumber } from '@/lib/formatters';
-import {
-  mockAdminDashboardStats,
-  mockLoans,
-  mockWithdrawals,
-  mockCooperativeChartData,
-} from '@/data/mockData';
+import { PageHeader } from '@/app/components/ui/page-header';
+import { StatCard } from '@/app/components/ui/stat-card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { DataTable } from '@/app/components/ui/data-table';
+import { StatusBadge } from '@/app/components/ui/status-badge';
+import { formatCurrency, formatDate, formatCompactNumber } from '@/app/lib/formatters';
+import { mockCooperativeChartData } from '@/app/data/mockData';
 import {
   BarChart,
   Bar,
@@ -21,32 +18,51 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import { useAdminDashboardStats } from '../api/queries/useAdminDashboardStats';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function AdminDashboard() {
-  const stats = mockAdminDashboardStats;
-  const pendingLoans = mockLoans.filter((l) => l.status === 'pending');
-  const pendingWithdrawals = mockWithdrawals.filter((w) => w.status === 'pending');
 
-  const pendingItems = [
-    ...pendingLoans.map((l) => ({
+  const queryClient = useQueryClient()
+
+
+  const { data, isPending, error, isError } = useAdminDashboardStats();
+
+  let pendingItems: {
+    id: string;
+    type: 'Loan' | 'Withdrawal';
+    member: string;
+    amount: number;
+    date: string;
+    status: string;
+  }[] = [];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let pendingColumns: any = [];
+
+   if(data) { 
+    queryClient.setQueryData(['admin-stats'], data);
+
+    pendingItems = [
+    ...data.pendingLoanItems.map((l) => ({
       id: l.id,
       type: 'Loan' as const,
-      member: l.memberName || l.memberId,
+      member: l.memberId,
       amount: l.amount,
       date: l.appliedDate,
       status: l.status,
     })),
-    ...pendingWithdrawals.map((w) => ({
+    ...data.pendingWithdrawalItems.map((w) => ({
       id: w.id,
       type: 'Withdrawal' as const,
-      member: w.memberName || w.memberId,
+      member: w.memberId,
       amount: w.amount,
-      date: w.requestDate,
+      date: w.createdAt,
       status: w.status,
     })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  const pendingColumns = [
+  pendingColumns = [
     {
       key: 'type',
       header: 'Type',
@@ -78,12 +94,19 @@ export default function AdminDashboard() {
     {
       key: 'status',
       header: 'Status',
-      cell: (item: typeof pendingItems[0]) => <StatusBadge status={item.status} />,
+      cell: () => <StatusBadge status={'pending'} />,
     },
   ];
 
+   }
+
+
   return (
-    <div className="space-y-8">
+    <>
+      { isPending && <div>Loading dashboard...</div> }
+      { isError && <div>Error: {error.message}</div> }
+      {data && (
+        <div className="space-y-8">
       <PageHeader
         title="Admin Dashboard"
         description="Overview of cooperative operations and finances"
@@ -93,25 +116,25 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Balance"
-          value={formatCompactNumber(stats.totalCooperativeBalance)}
+          value={formatCompactNumber(data.totalCooperativeBalance)}
           icon={<Wallet className="w-5 h-5" />}
           trend={{ value: 8.5, isPositive: true }}
           variant="primary"
         />
         <StatCard
           title="Total Members"
-          value={stats.totalMembers}
+          value={data.totalMembers}
           icon={<Users className="w-5 h-5" />}
           trend={{ value: 3, isPositive: true }}
         />
         <StatCard
           title="Outstanding Loans"
-          value={formatCompactNumber(stats.outstandingLoans)}
+          value={formatCompactNumber(data.outstandingLoans)}
           icon={<HandCoins className="w-5 h-5" />}
         />
         <StatCard
           title="Pending Approvals"
-          value={stats.pendingApprovals}
+          value={data.pendingApprovals}
           icon={<Clock className="w-5 h-5" />}
           variant="warning"
         />
@@ -127,7 +150,7 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Monthly Inflow</p>
-                <p className="text-2xl font-bold">{formatCompactNumber(stats.monthlyInflow)}</p>
+                <p className="text-2xl font-bold">{formatCompactNumber(data.monthlyInflow)}</p>
               </div>
             </div>
           </CardContent>
@@ -140,7 +163,7 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Monthly Outflow</p>
-                <p className="text-2xl font-bold">{formatCompactNumber(stats.monthlyOutflow)}</p>
+                <p className="text-2xl font-bold">{formatCompactNumber(data.monthlyOutflow)}</p>
               </div>
             </div>
           </CardContent>
@@ -201,5 +224,7 @@ export default function AdminDashboard() {
         </Card>
       </div>
     </div>
+      )}
+    </>
   );
 }

@@ -1,22 +1,26 @@
 import { PageHeader } from '@/app/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { useAuth } from '@/app/contexts/AuthContext';
 import { formatDateLong } from '@/app/lib/formatters';
 import { User, Mail, Phone, Calendar, CreditCard } from 'lucide-react';
+import { useAuthStore } from '@/app/store/auth-store';
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
+
+  const fullname = user ? `${user.firstname} ${user.lastname}` : '';
 
   const profileFields = [
-    { icon: User, label: 'Full Name', value: user?.name },
+    { icon: User, label: 'Full Name', value: fullname },
     { icon: Mail, label: 'Email Address', value: user?.email },
-    { icon: Phone, label: 'Phone Number', value: user?.phone || 'Not provided' },
+    // { icon: Phone, label: 'Phone Number', value: user?. || 'Not provided' },
     { icon: CreditCard, label: 'Member ID', value: user?.memberId },
-    { icon: Calendar, label: 'Member Since', value: user?.joinDate ? formatDateLong(user.joinDate) : '-' },
+    { icon: Calendar, label: 'Member Since', value: user?.joinedAt ? formatDateLong(user.joinedAt) : '-' },
   ];
 
   return (
-    <div className="space-y-6">
+
+    <>
+      { user &&  <div className="space-y-6">
       <PageHeader
         title="My Profile"
         description="View and manage your account information"
@@ -28,11 +32,11 @@ export default function Profile() {
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center">
                 <span className="text-2xl font-bold text-primary-foreground">
-                  {user?.name.charAt(0)}
+                  {fullname}
                 </span>
               </div>
               <div>
-                <CardTitle className="text-xl">{user?.name}</CardTitle>
+                <CardTitle className="text-xl">{user?.firstname}</CardTitle>
                 <p className="text-sm text-muted-foreground capitalize">
                   {user?.role} Account
                 </p>
@@ -56,6 +60,8 @@ export default function Profile() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </div>}
+    </>
+    
   );
 }

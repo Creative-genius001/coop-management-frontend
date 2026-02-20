@@ -36,8 +36,6 @@ const adminNavItems = [
 
 export default function Sidebar() {
   const { user, logout } = useAuthStore();
-
-  console.log({ user, firstname: user?.firstname });
   const pathname = usePathname();
   const router = useRouter();
   const isAdmin = user?.role === 'admin';

@@ -53,10 +53,11 @@ export default function Login() {
         body: JSON.stringify({ email: data.email, password: data.password }),
       })
 
+
       if(!res.ok) {       
         const data = await res.json().catch(() => null);
         toast.error(data?.message ||'Login failed. Please check your credentials and try again.');
-        throw new Error(data?.message || 'Login failed');
+        return;
       }
 
       let loggedUserData;
@@ -66,7 +67,7 @@ export default function Login() {
         loggedUserData = userData.user as User;
       } catch {
         toast.error('Something went wrong. Please try again.');
-        throw new Error('Invalid server response');
+        return;
       }
 
       login(loggedUserData);

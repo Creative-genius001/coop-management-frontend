@@ -1,41 +1,82 @@
-import { useState } from 'react';
-import { PageHeader } from '@/components/ui/page-header';
-import { DataTable } from '@/components/ui/data-table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
+'use client'
+
+import { useEffect, useMemo, useState } from 'react';
+import { PageHeader } from '@/app/components/ui/page-header';
+import { DataTable } from '@/app/components/ui/data-table';
+import { Button } from '@/app/components/ui/button';
+import { Input } from '@/app/components/ui/input';
+import { Card, CardContent } from '@/app/components/ui/card';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/app/components/ui/select';
 import { Search, Download, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
-import { formatCurrency, formatDate } from '@/lib/formatters';
-import { mockLedgerEntries } from '@/data/mockData';
-import { LedgerEntry } from '@/types/financial';
-import { useToast } from '@/hooks/use-toast';
+import { formatCurrency, formatDate } from '@/app/lib/formatters';
+import { toast } from "sonner"
+import { useGetAllLedgerEntry } from '@/app/api/queries/useLedgers';
+import { useQueryClient } from '@tanstack/react-query';
+import { useDebounce } from 'use-debounce';
+import { getAllLedgerEntries } from '@/app/api/ledger';
 
 export default function AdminLedger() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const { toast } = useToast();
+  const queryClient = useQueryClient()
 
-  const categories = [...new Set(mockLedgerEntries.map((e) => e.category))];
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [limit] = useState(10);
+  const [debouncedSearch] = useDebounce(search, 1000);
+  const [directionFilter, setDirectionFilter] = useState<string | undefined>(undefined);
+  const [sortBy, setSortBy] = useState<'createdAt' | 'amount' | 'direction'>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  const filteredLedger = mockLedgerEntries.filter((entry) => {
-    const matchesSearch =
-      entry.memberName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      entry.memberId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      entry.reference.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || entry.category === categoryFilter;
-    return matchesSearch && matchesCategory;
-  });
+  
+
+  const params = useMemo(() => ({
+    page,
+    limit,
+    search: debouncedSearch,
+    direction: directionFilter !== 'all' ? directionFilter : undefined,
+    sortBy,
+    sortOrder,
+  }), [page, limit, debouncedSearch, directionFilter, sortBy, sortOrder]);
+
+  const { data, isPending, isError } = useGetAllLedgerEntry(params);
+
+  // useEffect(() => {
+  //   setPage(1);
+  // }, [debouncedSearch, directionFilter, sortBy, sortOrder]);
+
+  useEffect(() => {
+    if (!data) return;
+
+    const totalPages = data.meta.totalPages;
+
+    if (page < totalPages) {
+      const nextPageParams = {
+        ...params,
+        page: page + 1,
+      };
+
+      queryClient.prefetchQuery({
+        queryKey: ['all-ledger-entries', nextPageParams],
+        queryFn: () => getAllLedgerEntries(nextPageParams),
+      });
+    }
+  }, [data, page, params, queryClient]);
+
+  const ledgerData = data?.data || [];
+  const meta = data?.meta;
+
+  const totalCredits = data?.numOfCredits || 0;
+
+  const totalDebits = data?.numOfDebits || 0;
 
   const handleExportCSV = () => {
-    toast({
-      title: 'Export started',
+    toast.info('Export started', {
+      position: 'top-center',
       description: 'Your CSV file will be downloaded shortly.',
     });
   };
@@ -44,72 +85,77 @@ export default function AdminLedger() {
     {
       key: 'date',
       header: 'Date',
-      cell: (item: LedgerEntry) => (
-        <span className="text-sm">{formatDate(item.date)}</span>
+      cell: (item: any) => (
+        <span className="text-sm">{formatDate(item.createdAt)}</span>
       ),
     },
     {
-      key: 'member',
-      header: 'Member',
-      cell: (item: LedgerEntry) => (
-        <div>
-          <p className="font-medium text-sm">{item.memberName}</p>
-          <p className="text-xs text-muted-foreground font-mono">{item.memberId}</p>
+      key: 'memberId',
+      header: 'Member ID',
+      cell: (item: any) => (
+        <span className="text-sm font-mono">{item.memberId}</span>
+      ),
+    },
+    {
+      key: 'direction',
+      header: 'Type',
+      cell: (item: any) => (
+        <div className="flex items-center gap-2">
+          {item.direction === 'CREDIT' ? (
+            <ArrowDownLeft className="w-4 h-4 text-success" />
+          ) : (
+            <ArrowUpRight className="w-4 h-4 text-destructive" />
+          )}
+          <span className="text-sm capitalize">
+            {item.direction.toLowerCase()}
+          </span>
         </div>
       ),
     },
     {
       key: 'type',
-      header: 'Type',
-      cell: (item: LedgerEntry) => (
-        <div className="flex items-center gap-2">
-          {item.type === 'credit' ? (
-            <ArrowDownLeft className="w-4 h-4 text-success" />
-          ) : (
-            <ArrowUpRight className="w-4 h-4 text-destructive" />
-          )}
-          <span className="text-sm capitalize">{item.type}</span>
-        </div>
-      ),
-    },
-    {
-      key: 'category',
       header: 'Category',
-      cell: (item: LedgerEntry) => (
+      cell: (item: any) => (
         <span className="text-sm">{item.category}</span>
       ),
     },
     {
       key: 'description',
       header: 'Description',
-      cell: (item: LedgerEntry) => (
+      cell: (item: any) => (
         <div>
-          <p className="text-sm">{item.description}</p>
-          <p className="text-xs text-muted-foreground font-mono">{item.reference}</p>
+          <p className="text-sm">{item.description || 'Saving Quarterly'}</p>
+          <p className="text-xs text-muted-foreground font-mono">
+            {item.referenceId}
+          </p>
         </div>
       ),
     },
     {
       key: 'amount',
       header: 'Amount',
-      cell: (item: LedgerEntry) => (
-        <span className={item.type === 'credit' ? 'credit-text' : 'debit-text'}>
-          {item.type === 'credit' ? '+' : '-'}{formatCurrency(item.amount)}
+      cell: (item: any) => (
+        <span
+          className={
+            item.direction === 'CREDIT'
+              ? 'credit-text'
+              : 'debit-text'
+          }
+        >
+          {item.direction === 'CREDIT' ? '+' : '-'}
+          {formatCurrency(item.amount)}
         </span>
       ),
       className: 'text-right',
     },
   ];
 
-  const totalCredits = mockLedgerEntries
-    .filter((e) => e.type === 'credit')
-    .reduce((sum, e) => sum + e.amount, 0);
-  const totalDebits = mockLedgerEntries
-    .filter((e) => e.type === 'debit')
-    .reduce((sum, e) => sum + e.amount, 0);
-
   return (
-    <div className="space-y-6">
+    <>
+      { isPending && <div>Loading ledger entries...</div> }
+      { isError && <div><p>Cannot display ledger entries</p></div> }
+      { data && (
+        <div className="space-y-6">
       <PageHeader
         title="Global Ledger"
         description="Complete financial transaction history"
@@ -121,64 +167,117 @@ export default function AdminLedger() {
         }
       />
 
-      {/* Summary */}
+    
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="py-4">
             <p className="text-sm text-muted-foreground">Total Credits</p>
-            <p className="text-2xl font-bold text-success">{formatCurrency(totalCredits)}</p>
+            <p className="text-2xl font-bold text-success">
+              {formatCurrency(totalCredits)}
+            </p>
           </CardContent>
         </Card>
+
         <Card>
           <CardContent className="py-4">
             <p className="text-sm text-muted-foreground">Total Debits</p>
-            <p className="text-2xl font-bold text-destructive">{formatCurrency(totalDebits)}</p>
+            <p className="text-2xl font-bold text-destructive">
+              {formatCurrency(totalDebits)}
+            </p>
           </CardContent>
         </Card>
+
         <Card>
           <CardContent className="py-4">
             <p className="text-sm text-muted-foreground">Net Balance</p>
-            <p className="text-2xl font-bold">{formatCurrency(totalCredits - totalDebits)}</p>
+            <p className="text-2xl font-bold">
+              {formatCurrency(totalCredits - totalDebits)}
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters */}
+      {/* FILTERS */}
       <Card>
-        <CardContent className="py-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by member, ID, or reference..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="Filter by category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <CardContent className="py-4 flex flex-col sm:flex-row gap-4">
+          <Input
+            placeholder="Search by Member ID..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+          />
+
+          <Select
+            value={directionFilter || 'ALL'}
+            onValueChange={(val) => {
+              setDirectionFilter(val === 'ALL' ? undefined : val);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Direction" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All</SelectItem>
+              <SelectItem value="CREDIT">Credit</SelectItem>
+              <SelectItem value="DEBIT">Debit</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={sortOrder}
+            onValueChange={(val: 'asc' | 'desc') =>
+              setSortOrder(val)
+            }
+          >
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="desc">Newest</SelectItem>
+              <SelectItem value="asc">Oldest</SelectItem>
+            </SelectContent>
+          </Select>
         </CardContent>
       </Card>
 
-      {/* Table */}
-      <DataTable
-        columns={columns}
-        data={filteredLedger}
-        emptyMessage="No ledger entries found"
-      />
+      {/* TABLE */}
+      {isPending && <p>Loading ledger entries...</p>}
+      {isError && <p>Failed to load ledger entries</p>}
+
+      {!isPending && (
+        <>
+          <DataTable
+            columns={columns}
+            data={ledgerData}
+            emptyMessage="No ledger entries found"
+          />
+
+          <div className="flex justify-between items-center mt-4">
+            <Button
+              disabled={page === 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              Previous
+            </Button>
+
+            <span>
+              Page {meta?.page} of {meta?.totalPages}
+            </span>
+
+            <Button
+              disabled={page === meta?.totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </>
+      )}
     </div>
+      )}
+    </>
   );
 }

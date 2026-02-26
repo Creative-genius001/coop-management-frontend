@@ -39,6 +39,20 @@ export interface Withdrawal {
   createdAt: string;
 }
 
+export interface GetWithdrawalParams {
+  page?: number;
+  limit?: number;
+  status?: string;
+}
+
+export interface PaginatedWithdrawalResponse {
+  data: Withdrawal[];
+  totalAprovedWithdrawal: number;
+  totalPendingWithdrawal: number;
+  totalRejectedWithdrawal: number;
+  meta: PaginationMeta;
+}
+
 export interface LedgerEntry {
   id: string;
   referenceId: string;
@@ -47,6 +61,38 @@ export interface LedgerEntry {
   amount: number;
   direction: DirectionType;
   createdAt: string;
+}
+
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface PaginatedLedgerResponse {
+  data: LedgerEntry[];
+  totalBalance: number;
+  numOfCredits: number;
+  numOfDebits: number;
+  meta: PaginationMeta;
+}
+
+export interface GetLedgerParams {
+  page?: number;
+  limit?: number;
+  direction?: string;
+  sortBy?: 'createdAt' | 'amount' | 'direction';
+  sortOrder?: 'asc' | 'desc';
+  search?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface GetMembersParams {
+  page?: number;
+  limit?: number;
+  search?: string;
 }
 
 export interface Account {
@@ -85,4 +131,22 @@ export interface Member {
   joinedAt: string;
   status: 'active' | 'inactive' | 'suspended';
   role : 'member' | 'admin'
+}
+
+export interface MemberWithFinancials extends Member {
+  totalSavings: number;
+  totalLoans: number;
+}
+
+export interface PaginatedMembersResponse {
+  data: MemberWithFinancials[];
+  stats: MemberStats,
+  meta: PaginationMeta;
+}
+
+export interface MemberStats {
+  totalMembers: number;
+  activeMembers: number;
+  inactiveMembers: number;
+  suspendedMembers: number;
 }

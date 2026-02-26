@@ -1,41 +1,64 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PageHeader } from '@/components/ui/page-header';
-import { DataTable } from '@/components/ui/data-table';
-import { StatusBadge } from '@/components/ui/status-badge';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { PageHeader } from '@/app/components/ui/page-header';
+import { DataTable } from '@/app/components/ui/data-table';
+import { StatusBadge } from '@/app/components/ui/status-badge';
+import { Input } from '@/app/components/ui/input';
+import { Button } from '@/app/components/ui/button';
+import { Card, CardContent } from '@/app/components/ui/card';
 import { Search, Eye } from 'lucide-react';
-import { formatCurrency, formatDate } from '@/lib/formatters';
-import { mockMembers } from '@/data/mockData';
-import { Member } from '@/types/financial';
+import { formatCurrency, formatDate } from '@/app/lib/formatters';
+import { MemberWithFinancials } from '@/app/types/financial';
+import { useDebounce } from 'use-debounce';
+import { useGetAllMembers } from '@/app/api/queries/useAdminQueries';
 
 export default function AdminMembers() {
-  const [searchQuery, setSearchQuery] = useState('');
+
+  const [search, setSearch] = useState('');
+  const [debouncedSearch] = useDebounce(search, 1000);
   const navigate = useNavigate();
 
-  const filteredMembers = mockMembers.filter(
-    (m) =>
-      m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.memberId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const [page, setPage] = useState(1);
+  const [status, setStatus] = useState<string>('all');
+  const [limit] = useState(10);
+
+  
+
+  const params = useMemo(() => ({
+    page,
+    limit,
+    search: debouncedSearch,
+  }), [page, limit, debouncedSearch]);
+
+  const { data, isPending, isError } = useGetAllMembers(params);
+
+  const membersData = data?.data || [];
+  const meta = data?.meta;
+
+  const { activeMembers, inactiveMembers, suspendedMembers, totalMembers } = data?.stats || {};
+
+  const totalActiveMembers = activeMembers || 0;
+
+  const totalInactiveMembers = inactiveMembers || 0;
+  
+  const totalSuspendedMembers = suspendedMembers || 0;
+
+  const totalMembersCount = totalMembers || 0;
 
   const columns = [
     {
       key: 'memberId',
       header: 'Member ID',
-      cell: (item: Member) => (
+      cell: (item: MemberWithFinancials) => (
         <span className="font-mono text-sm">{item.memberId}</span>
       ),
     },
     {
       key: 'name',
       header: 'Name',
-      cell: (item: Member) => (
+      cell: (item: MemberWithFinancials) => (
         <div>
-          <p className="font-medium">{item.name}</p>
+          <p className="font-medium">{item.firstname + item.lastname}</p>
           <p className="text-xs text-muted-foreground">{item.email}</p>
         </div>
       ),
@@ -43,35 +66,38 @@ export default function AdminMembers() {
     {
       key: 'joinDate',
       header: 'Joined',
-      cell: (item: Member) => (
-        <span className="text-sm">{formatDate(item.joinDate)}</span>
+      cell: (item: MemberWithFinancials) => (
+        <span className="text-sm">{formatDate(item.joinedAt)}</span>
       ),
     },
     {
       key: 'savings',
       header: 'Savings',
-      cell: (item: Member) => (
-        <span className="font-medium">{formatCurrency(item.savings)}</span>
+      cell: (item: MemberWithFinancials) => (
+        <span className="font-medium">{formatCurrency(item.totalSavings)}</span>
       ),
     },
     {
       key: 'loanBalance',
       header: 'Loan Balance',
-      cell: (item: Member) => (
-        <span className={item.loanBalance > 0 ? 'text-destructive font-medium' : 'text-muted-foreground'}>
-          {item.loanBalance > 0 ? formatCurrency(item.loanBalance) : '-'}
+      cell: (item: MemberWithFinancials) => (
+        <span className={item.totalLoans > 0 ? 'text-destructive font-medium' : 'text-muted-foreground'}>
+          {item.totalLoans > 0 ? formatCurrency(item.totalLoans) : '-'}
         </span>
       ),
     },
     {
       key: 'status',
       header: 'Status',
-      cell: (item: Member) => <StatusBadge status={item.status} />,
+      cell: (item: MemberWithFinancials) => {
+        const status = item.status === 'active' ? 'active' : item.status === 'inactive' ? 'inactive' : 'rejected';
+        return <StatusBadge status={status} />;
+      },
     },
     {
       key: 'actions',
       header: '',
-      cell: (item: Member) => (
+      cell: (item: MemberWithFinancials) => (
         <Button
           variant="ghost"
           size="sm"
@@ -97,14 +123,14 @@ export default function AdminMembers() {
         <Card>
           <CardContent className="py-4">
             <p className="text-sm text-muted-foreground">Total Members</p>
-            <p className="text-2xl font-bold">{mockMembers.length}</p>
+            <p className="text-2xl font-bold">{totalMembersCount}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="py-4">
             <p className="text-sm text-muted-foreground">Active</p>
             <p className="text-2xl font-bold text-success">
-              {mockMembers.filter((m) => m.status === 'active').length}
+              {totalActiveMembers}
             </p>
           </CardContent>
         </Card>
@@ -112,7 +138,15 @@ export default function AdminMembers() {
           <CardContent className="py-4">
             <p className="text-sm text-muted-foreground">Inactive</p>
             <p className="text-2xl font-bold text-muted-foreground">
-              {mockMembers.filter((m) => m.status === 'inactive').length}
+              {totalInactiveMembers}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="py-4">
+            <p className="text-sm text-muted-foreground">Suspended</p>
+            <p className="text-2xl font-bold text-red-500">
+              {totalSuspendedMembers}
             </p>
           </CardContent>
         </Card>
@@ -123,8 +157,8 @@ export default function AdminMembers() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
           placeholder="Search by name, member ID, or email..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
           className="pl-10"
         />
       </div>
@@ -132,7 +166,7 @@ export default function AdminMembers() {
       {/* Table */}
       <DataTable
         columns={columns}
-        data={filteredMembers}
+        data={membersData}
         emptyMessage="No members found"
       />
     </div>

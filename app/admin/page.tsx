@@ -26,7 +26,7 @@ export default function AdminDashboard() {
   const queryClient = useQueryClient()
 
 
-  const { data, isPending, error, isError } = useAdminDashboardStats();
+  const { data, isPending, isError } = useAdminDashboardStats();
 
   let pendingItems: {
     id: string;
@@ -40,8 +40,7 @@ export default function AdminDashboard() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let pendingColumns: any = [];
 
-   if(data) { 
-    queryClient.setQueryData(['admin-stats'], data);
+   if(data) {
 
     pendingItems = [
     ...data.pendingLoanItems.map((l) => ({
@@ -104,7 +103,7 @@ export default function AdminDashboard() {
   return (
     <>
       { isPending && <div>Loading dashboard...</div> }
-      { isError && <div>Error: {error.message}</div> }
+      { isError && <div><p>Cannot display data</p></div> }
       {data && (
         <div className="space-y-8">
       <PageHeader

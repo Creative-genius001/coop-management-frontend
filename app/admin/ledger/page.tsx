@@ -13,13 +13,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/app/components/ui/select';
-import { Search, Download, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { Download, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/app/lib/formatters';
 import { toast } from "sonner"
 import { useGetAllLedgerEntry } from '@/app/api/queries/useLedgers';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDebounce } from 'use-debounce';
 import { getAllLedgerEntries } from '@/app/api/ledger';
+import { LedgerEntry } from '@/app/types/financial';
 
 export default function AdminLedger() {
   const queryClient = useQueryClient()
@@ -85,21 +86,21 @@ export default function AdminLedger() {
     {
       key: 'date',
       header: 'Date',
-      cell: (item: any) => (
+      cell: (item: LedgerEntry) => (
         <span className="text-sm">{formatDate(item.createdAt)}</span>
       ),
     },
     {
       key: 'memberId',
       header: 'Member ID',
-      cell: (item: any) => (
+      cell: (item: LedgerEntry) => (
         <span className="text-sm font-mono">{item.memberId}</span>
       ),
     },
     {
       key: 'direction',
       header: 'Type',
-      cell: (item: any) => (
+      cell: (item: LedgerEntry) => (
         <div className="flex items-center gap-2">
           {item.direction === 'CREDIT' ? (
             <ArrowDownLeft className="w-4 h-4 text-success" />
@@ -115,16 +116,16 @@ export default function AdminLedger() {
     {
       key: 'type',
       header: 'Category',
-      cell: (item: any) => (
+      cell: (item: LedgerEntry) => (
         <span className="text-sm">{item.category}</span>
       ),
     },
     {
       key: 'description',
       header: 'Description',
-      cell: (item: any) => (
+      cell: (item: LedgerEntry) => (
         <div>
-          <p className="text-sm">{item.description || 'Saving Quarterly'}</p>
+          <p className="text-sm">{'Saving Quarterly'}</p>
           <p className="text-xs text-muted-foreground font-mono">
             {item.referenceId}
           </p>
@@ -134,7 +135,7 @@ export default function AdminLedger() {
     {
       key: 'amount',
       header: 'Amount',
-      cell: (item: any) => (
+      cell: (item: LedgerEntry) => (
         <span
           className={
             item.direction === 'CREDIT'

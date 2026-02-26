@@ -28,7 +28,6 @@ export default function Ledger() {
   const memberLedger = data;
 
   if(memberLedger) {
-    queryClient.setQueryData(['ledgers'], memberLedger);
 
     categories = [...new Set(memberLedger?.map((e) => e.category))];
 

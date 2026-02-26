@@ -36,7 +36,6 @@ export default function Login() {
 
 
   useEffect(() => {
-    toast('Login Component Mounted')
     if (isAuthenticated && user) {
       const redirectPath = user.role === 'admin' ? '/admin' : '/';
       router.push(redirectPath);
@@ -56,7 +55,14 @@ export default function Login() {
 
       if(!res.ok) {       
         const data = await res.json().catch(() => null);
-        toast.error(data?.message ||'Login failed. Please check your credentials and try again.');
+        toast.error('Login failed', {
+          style: {
+            background: '#FFEDED',
+          },
+          position: 'top-center',
+          description: data?.message ||'Login failed. Please check your credentials and try again.',
+        });
+        //toast.error(data?.message ||'Login failed. Please check your credentials and try again.');
         return;
       }
 
@@ -66,12 +72,24 @@ export default function Login() {
         const userData = await res.json();
         loggedUserData = userData.user as User;
       } catch {
-        toast.error('Something went wrong. Please try again.');
+        toast.error('Login Failed', {
+          style: {
+            background: '#FFEDED',
+            color: 'white',
+          },
+          position: 'top-center',
+          description: 'Something went wrong. Please try again.',
+        });
         return;
       }
 
       login(loggedUserData);
-      toast.success('Logged in successfully');
+      toast.success('Logged in successfully', {
+        style: {
+            background: '#EEFAF6',
+          },
+        position: 'top-center',
+      });
       router.replace(loggedUserData.role === 'admin' ? '/admin' : '/');
      
     } catch (error) {

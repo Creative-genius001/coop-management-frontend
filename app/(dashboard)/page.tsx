@@ -33,8 +33,6 @@ export default function MemberDashboard() {
 
   if(data) {
 
-    queryClient.setQueryData(['dashboard-stats'], data);
-
     transactionColumns = [
     {
       key: 'date',
@@ -81,7 +79,7 @@ export default function MemberDashboard() {
   return (
     <>
       { isPending && <div>Loading dashboard...</div> }
-      { isError && <div>Error: {error.message}</div> }
+      { isError && <div><p>Cannot display data</p></div> }
       { data &&  <div className="space-y-8">
       <PageHeader
         title={`Welcome back, ${user?.firstname.split(' ')[0]}!`}

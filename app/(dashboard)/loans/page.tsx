@@ -19,7 +19,6 @@ import { Label } from '@/app/components/ui/label';
 import { Textarea } from '@/app/components/ui/textarea';
 import { Plus, HandCoins, Clock, CheckCircle } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/app/lib/formatters';
-import { mockLoans } from '@/app/data/mockData';
 import { Loan } from '@/app/types/financial';
 import { toast } from 'sonner'
 import { useAuthStore } from '@/app/store/auth-store';
@@ -41,7 +40,7 @@ export default function Loans() {
       key: 'date',
       header: 'Applied Date',
       cell: (item: Loan) => (
-        <span className="text-sm">{formatDate(item.appliedDate)}</span>
+        <span className="text-sm">{formatDate(item.createdAt)}</span>
       ),
     },
     {

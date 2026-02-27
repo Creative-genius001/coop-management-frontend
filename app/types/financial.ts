@@ -1,5 +1,4 @@
-// export type LoanStatus = 'ACTIVE' | 'PAID' | 'PENDING' | 'REJECTED';
-export type LoanStatus = 'pending' | 'approved' | 'rejected' | 'active' | 'completed' | 'inactive';
+export type LoanStatus = 'ACTIVE' | 'PAID' | 'PENDING' | 'REJECTED';
 export type WithdrawalStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 export type DirectionType = 'CREDIT' | 'DEBIT';
 export type ContributionType = 'CASH' | 'TRANSFER';
@@ -19,13 +18,34 @@ export interface Loan {
   memberId: string;
   accountId: string;
   amount: number;
-  interestRate?: number;
-  loanDuration?: number; // months
-  outstandingBalance: number;
   status: LoanStatus;
   reason: string;
-  appliedDate: string;
+  createdAt: string;
   statusHistory: { status: LoanStatus; timestamp: string, changedBy: string }[];
+}
+
+export interface LoanFinancials extends Loan {
+  memberFirstname: string;
+  memberLastname: string;
+  memberIdentifier: string;
+}
+
+export interface LoanStats {
+  activeLoans: number;
+  pendingLoans: number;
+  rejectedLoans: number;
+  paidLoans: number;
+}
+export interface PaginatedLoanResponse {
+  data: LoanFinancials[];
+  stats: LoanStats;
+  meta: PaginationMeta;
+}
+
+export interface GetLoanParams {
+  page?: number;
+  limit?: number;
+  status?: string;
 }
 
 export interface Withdrawal {

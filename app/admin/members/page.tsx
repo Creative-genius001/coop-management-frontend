@@ -1,5 +1,6 @@
+'use client'
+
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/app/components/ui/page-header';
 import { DataTable } from '@/app/components/ui/data-table';
 import { StatusBadge } from '@/app/components/ui/status-badge';
@@ -11,12 +12,12 @@ import { formatCurrency, formatDate } from '@/app/lib/formatters';
 import { MemberWithFinancials } from '@/app/types/financial';
 import { useDebounce } from 'use-debounce';
 import { useGetAllMembers } from '@/app/api/queries/useAdminQueries';
+import { toast } from 'sonner';
 
 export default function AdminMembers() {
 
   const [search, setSearch] = useState('');
   const [debouncedSearch] = useDebounce(search, 1000);
-  const navigate = useNavigate();
 
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<string>('all');
@@ -58,7 +59,7 @@ export default function AdminMembers() {
       header: 'Name',
       cell: (item: MemberWithFinancials) => (
         <div>
-          <p className="font-medium">{item.firstname + item.lastname}</p>
+          <p className="font-medium">{`${item.firstname} ${item.lastname}`}</p>
           <p className="text-xs text-muted-foreground">{item.email}</p>
         </div>
       ),
@@ -82,7 +83,7 @@ export default function AdminMembers() {
       header: 'Loan Balance',
       cell: (item: MemberWithFinancials) => (
         <span className={item.totalLoans > 0 ? 'text-destructive font-medium' : 'text-muted-foreground'}>
-          {item.totalLoans > 0 ? formatCurrency(item.totalLoans) : '-'}
+          {item.totalLoans > 0 ? formatCurrency(item.totalLoans) : 'No loans'}
         </span>
       ),
     },
@@ -101,7 +102,9 @@ export default function AdminMembers() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => navigate(`/admin/member/${item.id}`)}
+          onClick={() => toast('View member details', {
+            description: `You clicked to view details for ${item.firstname} ${item.lastname}.`,
+          })}
         >
           <Eye className="w-4 h-4 mr-1" />
           View
@@ -164,11 +167,33 @@ export default function AdminMembers() {
       </div>
 
       {/* Table */}
-      <DataTable
-        columns={columns}
-        data={membersData}
-        emptyMessage="No members found"
-      />
+      <>
+        <DataTable
+          columns={columns}
+          data={membersData}
+          emptyMessage="No members found"
+        />
+
+        <div className="flex justify-between items-center mt-4">
+            <Button
+              disabled={page === 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              Previous
+            </Button>
+
+            <span>
+              Page {meta?.page} of {meta?.totalPages}
+            </span>
+
+            <Button
+              disabled={page === meta?.totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next
+            </Button>
+          </div>
+      </>
     </div>
   );
 }

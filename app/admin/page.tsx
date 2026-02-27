@@ -48,7 +48,7 @@ export default function AdminDashboard() {
       type: 'Loan' as const,
       member: l.memberId,
       amount: l.amount,
-      date: l.appliedDate,
+      date: l.createdAt,
       status: l.status,
     })),
     ...data.pendingWithdrawalItems.map((w) => ({

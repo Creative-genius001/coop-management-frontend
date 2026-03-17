@@ -11,12 +11,34 @@ import { Check, X } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/app/lib/formatters';
 import { Loan, LoanFinancials, LoanStatus } from '@/app/types/financial';
 import { toast } from 'sonner';
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useGetAllLoans } from '@/app/api/queries/useLoans';
+import { approveLoan, rejectLoan } from '@/app/api/loan';
 
 export default function AdminLoans() {
   const [statusFilter, setStatusFilter] = useState<string | undefined>('all');
   const queryClient = useQueryClient()
+
+  const approveMutation = useMutation({
+    mutationFn: (loan: {id : string}) => approveLoan(loan.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-loans'] });
+      toast.success('Loan approved successfully');
+    },
+    onError: () => {
+      toast.error('Failed to approve loan. Please try again.');
+    }
+  });
+
+  const disapproveMutation = useMutation({
+    mutationFn: (loan: {id : string}) => rejectLoan(loan.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-loans'] });
+    },
+    onError: () => {
+      toast.error('Failed to disapprove loan. Please try again.');
+    }
+  });
 
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
@@ -33,25 +55,13 @@ export default function AdminLoans() {
   //   setPage(1);
   // }, [debouncedSearch, directionFilter, sortBy, sortOrder]);
 
-  const loanData = data?.data || [];
+  const loanData = data?.data.map(loan => ({ ...loan, id: loan._id })) || [];
   const meta = data?.meta;
 
   const totalPendingLoans = data?.stats.pendingLoans || 0;
   const totalActiveLoans = data?.stats.activeLoans || 0;
   const totalPaidLoans = data?.stats.paidLoans || 0;
   const totalRejectedLoans = data?.stats.rejectedLoans || 0;
-
-  const handleApprove = (loanId: string) => {
-    toast( `Loan ${loanId} approved`, {
-      description: 'The loan has been approved and the member has been notified.',
-    });
-  };
-
-  const handleReject = (loanId: string) => {
-    toast( `Loan ${loanId} rejcted`, {
-      description: 'The loan has been rejected and the member has been notified.',
-    });
-  };
 
   const columns = [
     {
@@ -107,11 +117,17 @@ export default function AdminLoans() {
       cell: (item: Loan) =>
         item.status === 'PENDING' ? (
           <div className="flex gap-2 justify-end">
-            <Button size="sm" variant="outline" onClick={() => handleApprove(item.id)}>
+            <Button size="sm" variant="outline" 
+              onClick={() => approveMutation.mutate({id: item._id})}
+              disabled={approveMutation.isPending}
+            >
               <Check className="w-4 h-4 mr-1" />
               Approve
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => handleReject(item.id)}>
+            <Button size="sm" variant="ghost" 
+              onClick={() => disapproveMutation.mutate({id: item._id})}
+              disabled={disapproveMutation.isPending}
+            >
               <X className="w-4 h-4 mr-1" />
               Reject
             </Button>

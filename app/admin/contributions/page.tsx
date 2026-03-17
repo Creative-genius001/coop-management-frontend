@@ -1,9 +1,11 @@
+'use client';
+
 import { useState } from 'react';
-import { PageHeader } from '@/components/ui/page-header';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/app/components/ui/page-header';
+import { Button } from '@/app/components/ui/button';
+import { Input } from '@/app/components/ui/input';
+import { Label } from '@/app/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -11,38 +13,33 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from '@/app/components/ui/dialog';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/app/components/ui/select';
 import { Plus, Search } from 'lucide-react';
-import { formatCurrency } from '@/lib/formatters';
-import { mockMembers, mockContributions } from '@/data/mockData';
-import { useToast } from '@/hooks/use-toast';
+import { formatCurrency } from '@/app/lib/formatters';
+import { useGetRecentContributions } from '@/app/api/queries/useContirbutions';
+import { toast } from 'sonner';
 
 export default function AdminContributions() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [memberSearch, setMemberSearch] = useState('');
   const [selectedMember, setSelectedMember] = useState('');
-  const { toast } = useToast();
 
-  const filteredMembers = mockMembers.filter(
-    (m) =>
-      m.status === 'active' &&
-      (m.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
-        m.memberId.toLowerCase().includes(memberSearch.toLowerCase()))
-  );
+  const { data, isPending, isError } = useGetRecentContributions();
 
-  const totalContributions = mockContributions.reduce((sum, c) => sum + c.amount, 0);
+  const totalContributions = data?.totalContributions || 0;
+  const numberOfContributions = data?.numberOfContributions || 0;
+  const recentContributions = data?.data || [];
 
   const handleRecordContribution = (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: 'Contribution recorded',
+    toast('Contribution recorded', {
       description: 'The contribution has been recorded and ledger updated.',
     });
     setIsDialogOpen(false);
@@ -51,7 +48,11 @@ export default function AdminContributions() {
   };
 
   return (
-    <div className="space-y-6">
+    <>
+      { isPending && <div>Loading contributions...</div> }
+      { isError && <div><p>Cannot display contributions</p></div> }
+      { !isPending && !isError && (
+            <div className="space-y-6">
       <PageHeader
         title="Record Contributions"
         description="Record cash contributions for members"
@@ -67,7 +68,7 @@ export default function AdminContributions() {
               <DialogHeader>
                 <DialogTitle>Record Contribution</DialogTitle>
                 <DialogDescription>
-                  Enter the contribution details. This will update the member's account and ledger.
+                  Enter the contribution details. This will update the member&apos;s account and ledger.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleRecordContribution} className="space-y-4 mt-4">
@@ -83,7 +84,7 @@ export default function AdminContributions() {
                       className="pl-10"
                     />
                   </div>
-                  {memberSearch && (
+                  {/* {memberSearch && (
                     <div className="max-h-32 overflow-y-auto border rounded-lg">
                       {filteredMembers.map((member) => (
                         <button
@@ -100,7 +101,7 @@ export default function AdminContributions() {
                         </button>
                       ))}
                     </div>
-                  )}
+                  )} */}
                 </div>
 
                 <div className="space-y-2">
@@ -152,7 +153,7 @@ export default function AdminContributions() {
         <Card>
           <CardContent className="py-6">
             <p className="text-sm text-muted-foreground">Total Records</p>
-            <p className="text-3xl font-bold">{mockContributions.length}</p>
+            <p className="text-3xl font-bold">{numberOfContributions}</p>
           </CardContent>
         </Card>
       </div>
@@ -164,7 +165,7 @@ export default function AdminContributions() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {mockContributions.slice(0, 5).map((contribution) => (
+            {recentContributions.map((contribution) => (
               <div
                 key={contribution.id}
                 className="flex items-center justify-between py-3 border-b last:border-0"
@@ -184,5 +185,7 @@ export default function AdminContributions() {
         </CardContent>
       </Card>
     </div>
+      )}
+    </>
   );
 }

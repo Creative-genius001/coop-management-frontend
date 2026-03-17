@@ -13,8 +13,15 @@ export interface Contribution {
   createdAt: string;
 }
 
+export interface RecentContribution {
+  data: Contribution[];
+  totalContributions: number;
+  numberOfContributions: number;
+}
+
 export interface Loan {
-  id: string;
+  _id: string;
+  id?: string;
   memberId: string;
   accountId: string;
   amount: number;

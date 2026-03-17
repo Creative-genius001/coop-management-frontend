@@ -13,3 +13,4 @@ export const useGetAllLoans = (params: GetLoanParams) =>
     queryKey: ['all-loans'],
     queryFn: () => getAllLoans(params),
   });
+

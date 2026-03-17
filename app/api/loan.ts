@@ -10,3 +10,11 @@ export const getAllLoans = async (params: GetLoanParams): Promise<PaginatedLoanR
   const { data } = await api.get('/admin/loans/all', { params });
   return data;
 }
+
+export const approveLoan = async (loanId: string): Promise<void> => {
+  await api.post(`/loan/approve/${loanId}`);
+}
+
+export const rejectLoan = async (loanId: string): Promise<void> => {
+  await api.post(`/loan/reject/${loanId}`);
+}

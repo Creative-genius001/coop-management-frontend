@@ -18,3 +18,7 @@ export const approveLoan = async (loanId: string): Promise<void> => {
 export const rejectLoan = async (loanId: string): Promise<void> => {
   await api.post(`/loan/reject/${loanId}`);
 }
+
+export const requestLoan = async (accountId: string, amount: string, reason: string): Promise<void> => {
+  await api.post('/loan/request', { accountId, amount, reason });
+}

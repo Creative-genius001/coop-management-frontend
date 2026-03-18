@@ -5,7 +5,7 @@ import { PageHeader } from '@/app/components/ui/page-header';
 import { DataTable } from '@/app/components/ui/data-table';
 import { StatusBadge } from '@/app/components/ui/status-badge';
 import { Button } from '@/app/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
+import { Card, CardContent } from '@/app/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -22,14 +22,16 @@ import { formatCurrency, formatDate } from '@/app/lib/formatters';
 import { Loan } from '@/app/types/financial';
 import { toast } from 'sonner'
 import { useAuthStore } from '@/app/store/auth-store';
-import { useQueryClient } from '@tanstack/react-query';
 import { useGetMemberLoans } from '@/app/api/queries/useLoans';
+import { requestLoan } from '@/app/api/loan';
 
 
 export default function Loans() {
 
-  const queryClient = useQueryClient()
   const { user } = useAuthStore();
+
+  const [loanAmount, setLoanAmount] = useState<string | null>(null);
+  const [reason, setReason] = useState<string | null>(null);
   
   const { data, isPending, error, isError } = useGetMemberLoans(user?.memberId || '');
 
@@ -60,14 +62,20 @@ export default function Loans() {
     {
       key: 'term',
       header: 'Term',
-      cell: (item: Loan) => (
-        <span className="text-sm">{item.loanDuration} months</span>
+      cell: () => (
+        <span className="text-sm">5 months</span>
       ),
     },
     {
       key: 'status',
       header: 'Status',
-      cell: (item: Loan) => <StatusBadge status={item.status} />,
+      cell: (item: Loan) => {
+        let status: 'active' | 'pending' | 'completed' | 'rejected' = 'pending';
+        if (item.status === 'ACTIVE') status = 'active';
+        else if (item.status === 'REJECTED') status = 'rejected';
+        else if (item.status === 'PAID') status = 'completed';
+        return <StatusBadge status={status} />;
+      }
     },
     {
       key: 'outstanding',
@@ -83,12 +91,24 @@ export default function Loans() {
 
   const handleApplyLoan = (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success('Your loan application has been submitted for review.');
-    setIsDialogOpen(false);
+    if(!loanAmount || !reason) {
+      toast.error('Please fill in all required fields.');
+      return;
+    }
+    const accountId = user?.account.id || '';
+    try {
+      requestLoan(accountId, loanAmount, reason)
+      toast.success('Loan application submitted successfully!');
+    } catch (error) {
+      toast.error('Failed to submit loan application.');
+    } finally {
+      setIsDialogOpen(false);
+    }
+    
   };
 
-  const activeLoan = data?.find((l) => l.status === 'active');
-  const pendingLoan = data?.find((l) => l.status === 'pending');
+  const activeLoan = data?.find((l) => l.status === 'ACTIVE');
+  // const pendingLoan = data?.find((l) => l.status === 'PENDING');
 
   return (
     <>
@@ -120,10 +140,11 @@ export default function Loans() {
                     id="amount"
                     type="number"
                     placeholder="Enter amount"
+                    onChange={(e) => setLoanAmount(e.target.value)}
                     required
                   />
                 </div>
-                <div className="space-y-2">
+                {/* <div className="space-y-2">
                   <Label htmlFor="term">Loan Term (months)</Label>
                   <Input
                     id="term"
@@ -133,12 +154,13 @@ export default function Loans() {
                     max={24}
                     required
                   />
-                </div>
+                </div> */}
                 <div className="space-y-2">
                   <Label htmlFor="purpose">Purpose</Label>
                   <Textarea
                     id="purpose"
                     placeholder="Describe the purpose of this loan"
+                    onChange={(e) => setReason(e.target.value)}
                     required
                   />
                 </div>
@@ -197,7 +219,7 @@ export default function Loans() {
               <div>
                 <p className="text-sm text-muted-foreground">Monthly Payment</p>
                 <p className="text-2xl font-bold">
-                  {formatCurrency(activeLoan?.outstandingBalance || 0)}
+                  {formatCurrency(0)}
                 </p>
               </div>
             </div>

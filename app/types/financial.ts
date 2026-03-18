@@ -21,10 +21,11 @@ export interface RecentContribution {
 
 export interface Loan {
   _id: string;
-  id?: string;
+  id: string;
   memberId: string;
   accountId: string;
   amount: number;
+  outstandingBalance?: number;
   status: LoanStatus;
   reason: string;
   createdAt: string;

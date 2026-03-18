@@ -1,7 +1,9 @@
+'use client'
+
 import { PageHeader } from '@/app/components/ui/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { formatDateLong } from '@/app/lib/formatters';
-import { User, Mail, Phone, Calendar, CreditCard } from 'lucide-react';
+import { User, Mail, Calendar, CreditCard } from 'lucide-react';
 import { useAuthStore } from '@/app/store/auth-store';
 
 export default function Profile() {

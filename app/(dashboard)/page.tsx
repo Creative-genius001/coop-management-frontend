@@ -1,6 +1,6 @@
 'use client'
 
-import { Wallet, HandCoins, ArrowUpCircle, TrendingUp } from 'lucide-react';
+import { Wallet, HandCoins, ArrowUpCircle } from 'lucide-react';
 import { PageHeader } from '@/app/components/ui/page-header';
 import { StatCard } from '@/app/components/ui/stat-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
@@ -18,15 +18,12 @@ import {
 } from 'recharts';
 import { useAuthStore } from '../store/auth-store';
 import { useMemberDashboardStats } from '../api/queries/useMemberDashboardStats';
-import { useQueryClient } from '@tanstack/react-query';
 
 export default function MemberDashboard() {
 
   const { user } = useAuthStore();
-  const queryClient = useQueryClient()
 
-
-  const { data, isPending, error, isError } = useMemberDashboardStats(user?.memberId || '');
+  const { data, isPending, isError } = useMemberDashboardStats(user?.memberId || '');
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let transactionColumns: any = [];

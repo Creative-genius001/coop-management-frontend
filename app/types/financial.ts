@@ -57,6 +57,7 @@ export interface GetLoanParams {
 }
 
 export interface Withdrawal {
+  _id: string;
   id: string;
   memberId: string;
   amount: number;
@@ -131,6 +132,7 @@ export interface Account {
 }
 
 export interface DashboardStats {
+  currentContributionBalance: number;
   totalContributions: number;
   activeLoans: number;
   pendingWithdrawals: number;

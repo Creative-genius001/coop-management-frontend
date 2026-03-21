@@ -19,12 +19,8 @@ import {
   Legend,
 } from 'recharts';
 import { useAdminDashboardStats } from '../api/queries/useAdminDashboardStats';
-import { useQueryClient } from '@tanstack/react-query';
 
 export default function AdminDashboard() {
-
-  const queryClient = useQueryClient()
-
 
   const { data, isPending, isError } = useAdminDashboardStats();
 

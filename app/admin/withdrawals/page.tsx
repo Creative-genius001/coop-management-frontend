@@ -12,7 +12,8 @@ import { formatCurrency, formatDate } from '@/app/lib/formatters';
 import { Withdrawal } from '@/app/types/financial';
 import { toast } from "sonner"
 import { useGetAllWithdrawals } from '@/app/api/queries/useWithdrawal';
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { approveWithdrawal, rejectWithdrawal } from '@/app/api/withdrawal';
 
 export default function AdminWithdrawals() {
 
@@ -41,19 +42,28 @@ export default function AdminWithdrawals() {
   
   const totalRejectedWithdrawal = data?.totalRejectedWithdrawal || 0;
 
-  const handleApprove = (id: string) => {
-    toast('Withdrawal approved', {
-      description: 'The withdrawal has been approved and processed.',
-      position: 'top-center',
-    });
-  };
+  const approveMutation = useMutation({
+    mutationFn: (withdrawal: {id : string}) => approveWithdrawal(withdrawal.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-withdrawals'] });
+      toast.success('Withdrawal approved successfully',{
+        position: 'top-center',
+      });
+    },
+    onError: () => {
+      toast.error('Failed to approve withdrawal. Please try again.');
+    }
+  });
 
-  const handleReject = (id: string) => {
-    toast('Withdrawal rejected', {
-      description: 'The withdrawal request has been rejected.',
-      position: 'top-center',
-    });
-  };
+  const disapproveMutation = useMutation({
+    mutationFn: (withdrawal: {id : string}) => rejectWithdrawal(withdrawal.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-withdrawals'] });
+    },
+    onError: () => {
+      toast.error('Failed to disapprove withdrawal. Please try again.');
+    }
+  });
 
   const columns = [
     {
@@ -94,11 +104,15 @@ export default function AdminWithdrawals() {
       cell: (item: Withdrawal) =>
         item.status === 'PENDING' ? (
           <div className="flex gap-2 justify-end">
-            <Button size="sm" variant="outline" onClick={() => handleApprove(item.id)}>
+            <Button size="sm" variant="outline"  
+              onClick={() => approveMutation.mutate({id: item._id})}
+              disabled={approveMutation.isPending}>
               <Check className="w-4 h-4 mr-1" />
               Approve
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => handleReject(item.id)}>
+            <Button size="sm" variant="ghost" 
+              onClick={() => disapproveMutation.mutate({id: item._id})}
+              disabled={disapproveMutation.isPending}>
               <X className="w-4 h-4 mr-1" />
               Reject
             </Button>

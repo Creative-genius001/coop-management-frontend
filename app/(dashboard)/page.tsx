@@ -40,7 +40,7 @@ export default function MemberDashboard() {
 
   const handleRequestWithdrawal = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!withdrawlAmount || !reason) {
+    if (!withdrawlAmount) {
       toast.error('Please fill in all fields');
       return;
     }
@@ -55,7 +55,7 @@ export default function MemberDashboard() {
       return;
     }
     try {
-       await requestWithdrawal(user?.memberId , Number(withdrawlAmount) , reason)
+       await requestWithdrawal(user?.memberId , Number(withdrawlAmount) , reason || 'No reason provided');
        toast.success('Withdrawal request submitted successfully',{
         description: 'The admin will review your request within 2-3 business days.',
         position: 'top-center',
@@ -168,9 +168,8 @@ export default function MemberDashboard() {
                   <Label htmlFor="purpose">Purpose</Label>
                   <Textarea
                     id="purpose"
-                    placeholder="Describe the purpose of this loan"
+                    placeholder="Optional"
                     onChange={(e) => setReason(e.target.value)}
-                    required
                   />
                 </div>
                 <div className="flex gap-3 pt-4">
@@ -189,11 +188,10 @@ export default function MemberDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
-          title="Total Contributions"
-          value={formatCompactNumber(data.totalContributions)}
-          icon={<TrendingUp className="w-5 h-5" />}
-          trend={{ value: 12, isPositive: true }}
-          variant="primary"
+          title="Contribution Balance"
+          value={formatCompactNumber(data.currentContributionBalance || 0)}
+          icon={<Wallet className="w-5 h-5" />}
+          variant="success"
         />
         <StatCard
           title="Active Loans"
@@ -206,10 +204,11 @@ export default function MemberDashboard() {
           icon={<ArrowUpCircle className="w-5 h-5" />}
         />
         <StatCard
-          title="Contribution Balance"
-          value={formatCompactNumber(data.currentContributionBalance || 0)}
-          icon={<Wallet className="w-5 h-5" />}
-          variant="success"
+          title="Total Contributions"
+          value={formatCompactNumber(data.totalContributions)}
+          icon={<TrendingUp className="w-5 h-5" />}
+          trend={{ value: 12, isPositive: true }}
+          variant="primary"
         />
       </div>
 

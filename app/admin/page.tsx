@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/ca
 import { DataTable } from '@/app/components/ui/data-table';
 import { StatusBadge } from '@/app/components/ui/status-badge';
 import { formatCurrency, formatDate, formatCompactNumber } from '@/app/lib/formatters';
-import { mockCooperativeChartData } from '@/app/data/mockData';
 import {
   BarChart,
   Bar,
@@ -175,7 +174,7 @@ export default function AdminDashboard() {
           <CardContent>
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={mockCooperativeChartData}>
+                <BarChart data={data.chartStats} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis
                     dataKey="month"

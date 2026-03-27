@@ -25,11 +25,13 @@ import { Plus, Search } from 'lucide-react';
 import { formatCurrency } from '@/app/lib/formatters';
 import { useGetRecentContributions } from '@/app/api/queries/useContirbutions';
 import { toast } from 'sonner';
+import { recordContribution } from '@/app/api/contribution';
 
 export default function AdminContributions() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [memberSearch, setMemberSearch] = useState('');
   const [selectedMember, setSelectedMember] = useState('');
+  const [amount, setAmount] = useState(0);
 
   const { data, isPending, isError } = useGetRecentContributions();
 
@@ -37,14 +39,32 @@ export default function AdminContributions() {
   const numberOfContributions = data?.numberOfContributions || 0;
   const recentContributions = data?.data || [];
 
-  const handleRecordContribution = (e: React.FormEvent) => {
+  const handleRecordContribution = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast('Contribution recorded', {
-      description: 'The contribution has been recorded and ledger updated.',
-    });
-    setIsDialogOpen(false);
-    setSelectedMember('');
-    setMemberSearch('');
+
+    if (!selectedMember || !amount ) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    if(isNaN(Number(amount)) || Number(amount) <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    try {
+      await recordContribution({ memberId: selectedMember, amount });
+        toast('Contribution recorded', {
+        description: 'The contribution has been recorded and ledger updated.',
+      });
+      setIsDialogOpen(false);
+      setSelectedMember('');
+      setMemberSearch('');
+    } catch (error) {
+      toast.error('Failed to record contribution');
+    }
+
+
   };
 
   return (
@@ -76,12 +96,10 @@ export default function AdminContributions() {
                 <div className="space-y-2">
                   <Label>Select Member</Label>
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
-                      placeholder="Search member..."
-                      value={memberSearch}
-                      onChange={(e) => setMemberSearch(e.target.value)}
-                      className="pl-10"
+                      placeholder="Enter member ID..."
+                      value={selectedMember}
+                      onChange={(e) => setSelectedMember(e.target.value)}
                     />
                   </div>
                   {/* {memberSearch && (
@@ -110,6 +128,7 @@ export default function AdminContributions() {
                     id="amount"
                     type="number"
                     placeholder="Enter amount"
+                    onChange={(e) => setAmount(Number(e.target.value))}
                     required
                   />
                 </div>
@@ -121,9 +140,9 @@ export default function AdminContributions() {
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="monthly">Monthly Contribution</SelectItem>
-                      <SelectItem value="special">Special Contribution</SelectItem>
-                      <SelectItem value="share_capital">Share Capital</SelectItem>
+                      <SelectItem value="Monthly Contribution">Monthly Contribution</SelectItem>
+                      {/* <SelectItem value="special">Special Contribution</SelectItem>
+                      <SelectItem value="share_capital">Share Capital</SelectItem> */}
                     </SelectContent>
                   </Select>
                 </div>

@@ -7,17 +7,30 @@ import { StatusBadge } from '@/app/components/ui/status-badge';
 import { Button } from '@/app/components/ui/button';
 import { Card, CardContent } from '@/app/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
-import { Check, X } from 'lucide-react';
+import { Check, X, Plus } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/app/lib/formatters';
 import { Loan, LoanFinancials, LoanStatus } from '@/app/types/financial';
 import { toast } from 'sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useGetAllLoans } from '@/app/api/queries/useLoans';
-import { approveLoan, rejectLoan } from '@/app/api/loan';
+import { useGetActiveLoansForMember, useGetAllLoans } from '@/app/api/queries/useLoans';
+import { approveLoan, recordApprovedLoan, recordLoanRepayment, rejectLoan } from '@/app/api/loan';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/app/components/ui/dialog';
+import { Input } from '@/app/components/ui/input';
+import { Label } from '@/app/components/ui/label';
+import { useDebounce } from 'use-debounce';
 
 export default function AdminLoans() {
   const [statusFilter, setStatusFilter] = useState<string | undefined>('all');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<string>('');
+  const [loanType, setLoanType] = useState('');
+  const [amount, setAmount] = useState('');
+  const [selectedLoanId, setSelectedLoanId] = useState("");
+  const [debouncedSearch] = useDebounce(selectedMember, 1000);
+
   const queryClient = useQueryClient()
+
+  const getActiveLoanParams = useMemo(() => ({ selectedMember: debouncedSearch }), [debouncedSearch]);
 
   const approveMutation = useMutation({
     mutationFn: (loan: {id : string}) => approveLoan(loan.id),
@@ -63,6 +76,38 @@ export default function AdminLoans() {
   const totalPaidLoans = data?.stats.paidLoans || 0;
   const totalRejectedLoans = data?.stats.rejectedLoans || 0;
 
+  const handleRecordLoan = async(e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedMember || !amount || !loanType) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    if(isNaN(Number(amount)) || Number(amount) <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+    
+    try {
+      if(loanType === 'repayment') {
+        await recordLoanRepayment(selectedLoanId, selectedMember, Number(amount));
+      } else if(loanType === 'approval') {
+        await recordApprovedLoan(selectedMember, Number(amount));
+      }
+      toast.success('Loan recorded successfully');
+    } catch (error) {
+      toast.error('Failed to record loan. Please try again.');
+    } finally {
+    setIsDialogOpen(false);
+    }
+  };
+
+  const { data: memberLoans, isLoading } = useGetActiveLoansForMember(getActiveLoanParams.selectedMember,{
+    enabled: isDialogOpen && debouncedSearch.length > 0 
+  });
+
+
   const columns = [
     {
       key: 'member',
@@ -87,9 +132,11 @@ export default function AdminLoans() {
       cell: (item: LoanFinancials) => <span className="text-sm">{item.reason}</span>,
     },
     {
-      key: 'term',
-      header: 'Term',
-      cell: () => <span className="text-sm">3 months</span>,
+      key: 'outstanding balance',
+      header: 'Outstanding Balance',
+      cell: (item: LoanFinancials) => (
+        item.outstandingBalance  ? <span className="font-semibold">{formatCurrency(item.outstandingBalance)}</span> : <span className="text-sm text-muted-foreground">N/A</span>
+      ),
     },
     {
       key: 'date',
@@ -102,11 +149,11 @@ export default function AdminLoans() {
       key: 'status',
       header: 'Status',
       cell: (item: LoanFinancials) => {
-        const statusMap: Record<LoanStatus, 'pending' | 'active' | 'approved' | 'rejected' > = {
+        const statusMap: Record<LoanStatus, 'pending' | 'active' | 'completed' | 'rejected' > = {
           PENDING: 'pending',
           ACTIVE: 'active',
           REJECTED: 'rejected',
-          PAID: 'approved',
+          PAID: 'completed',
         };
         return <StatusBadge status={statusMap[item.status]} />;
       },
@@ -142,6 +189,122 @@ export default function AdminLoans() {
       <PageHeader
         title="Loan Management"
         description="Review and manage loan applications"
+        action={
+          <Dialog open={isDialogOpen} 
+             onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (!open) {
+                setSelectedMember('');
+                setSelectedLoanId('');
+              }
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Record Loan
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Record Loan</DialogTitle>
+                <DialogDescription>
+                  Enter the loan details. This will update the member&apos;s account and ledger.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleRecordLoan} className="space-y-4 mt-4">
+                {/* Member Search */}
+                <div className="space-y-2">
+                  <Label>Select Member</Label>
+                  <div className="relative">
+                    {/* <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /> */}
+                    <Input
+                      placeholder="Enter member ID..."
+                      value={selectedMember}
+                      onChange={(e) => setSelectedMember(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  {/* { memberSearch && (
+                    <div className="max-h-32 overflow-y-auto border rounded-lg">
+                      {filteredMembers.map((member) => (
+                        <button
+                          key={member.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedMember(member.id);
+                            setMemberSearch(member.name);
+                          }}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex justify-between"
+                        >
+                          <span>{member.name}</span>
+                          <span className="text-muted-foreground font-mono">{member.memberId}</span>
+                        </button>
+                      ))}
+                    </div>
+                    )
+                  } */}
+
+                  <div className="space-y-2">
+                    <Label>Select Specific Loan</Label>
+                    <Select 
+                      value={selectedLoanId} 
+                      onValueChange={setSelectedLoanId} 
+                      disabled={memberLoans?.length === 0}
+                      required
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={memberLoans ? "Choose loan to repay" : "No active loans"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {memberLoans?.map((loan: Loan) => (
+                          <SelectItem key={loan._id} value={loan._id}>
+                            {loan.reason} — Balance: ₦{loan.outstandingBalance}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Amount (₦)</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    placeholder="Enter amount"
+                    onChange={(e) => setAmount(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Loan Type</Label>
+                  <Select value={loanType} onValueChange={setLoanType} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="repayment">Loan Repayment</SelectItem>
+                      <SelectItem value="approval">Approved Loan</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="flex-1">
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="flex-1">
+                    Record Loan
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        }
       />
 
       {/* Stats */}

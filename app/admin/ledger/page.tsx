@@ -121,18 +121,6 @@ export default function AdminLedger() {
       ),
     },
     {
-      key: 'description',
-      header: 'Description',
-      cell: (item: LedgerEntry) => (
-        <div>
-          <p className="text-sm">{'Saving Quarterly'}</p>
-          <p className="text-xs text-muted-foreground font-mono">
-            {item.referenceId}
-          </p>
-        </div>
-      ),
-    },
-    {
       key: 'amount',
       header: 'Amount',
       cell: (item: LedgerEntry) => (

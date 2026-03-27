@@ -25,7 +25,7 @@ export interface Loan {
   memberId: string;
   accountId: string;
   amount: number;
-  outstandingBalance?: number;
+  outstandingBalance: number;
   status: LoanStatus;
   reason: string;
   createdAt: string;
@@ -141,6 +141,11 @@ export interface DashboardStats {
 }
 
 export interface AdminDashboardStats {
+  chartStats: { 
+    month: string;
+    inflow: number;
+    outflow: number;
+  }[];
   totalCooperativeBalance: number;
   totalMembers: number;
   outstandingLoans: number;

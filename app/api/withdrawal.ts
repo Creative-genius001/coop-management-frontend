@@ -20,3 +20,8 @@ export const rejectWithdrawal = async (withdrawalId: string) => {
   const { data } = await api.post(`/withdrawal/${withdrawalId}/reject`);
   return data;
 }
+
+export const recordWithdrawal = async (memberId: string, amount: number) => {
+  const { data } = await api.post('/admin/withdrawal/record', { memberId, amount });
+  return data;
+}

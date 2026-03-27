@@ -95,23 +95,23 @@ export default function AdminMembers() {
         return <StatusBadge status={status} />;
       },
     },
-    {
-      key: 'actions',
-      header: '',
-      cell: (item: MemberWithFinancials) => (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => toast('View member details', {
-            description: `You clicked to view details for ${item.firstname} ${item.lastname}.`,
-          })}
-        >
-          <Eye className="w-4 h-4 mr-1" />
-          View
-        </Button>
-      ),
-      className: 'text-right',
-    },
+    // {
+    //   key: 'actions',
+    //   header: '',
+    //   cell: (item: MemberWithFinancials) => (
+    //     <Button
+    //       variant="ghost"
+    //       size="sm"
+    //       onClick={() => toast('View member details', {
+    //         description: `You clicked to view details for ${item.firstname} ${item.lastname}.`,
+    //       })}
+    //     >
+    //       <Eye className="w-4 h-4 mr-1" />
+    //       View
+    //     </Button>
+    //   ),
+    //   className: 'text-right',
+    // },
   ];
 
   return (
